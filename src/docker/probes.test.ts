@@ -17,7 +17,9 @@ describe('Containe readines probes', () => {
                 readinessProbe: http({
                     method: 'GET',
                     path: '/',
-                })
+                }),
+                stdout: process.stdout,
+                stderr: process.stderr
             }
 
             const id = await start(c);

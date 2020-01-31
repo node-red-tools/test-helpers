@@ -1,11 +1,11 @@
 import axios from 'axios';
 import { expect } from 'chai';
 import { execSync } from 'child_process';
-import { findID, start, stop } from './container';
+import { Container, findID, start, stop } from './container';
 
 describe('Container API', () => {
     it('should start a container', async () => {
-        const c = {
+        const c: Container = {
             name: `${Date.now()}_busybox`,
             image: 'nginx',
             ports: [
@@ -14,6 +14,8 @@ describe('Container API', () => {
                     host: 8888,
                 },
             ],
+            stdout: process.stdout,
+            stderr: process.stderr,
         };
 
         const id = await start(c);
@@ -26,7 +28,7 @@ describe('Container API', () => {
     });
 
     it('should stop a container', async () => {
-        const c = {
+        const c: Container = {
             name: `${Date.now()}_busybox`,
             image: 'nginx',
             ports: [
@@ -35,6 +37,8 @@ describe('Container API', () => {
                     host: 8888,
                 },
             ],
+            stdout: process.stdout,
+            stderr: process.stderr,
         };
 
         const id = await start(c);
@@ -55,7 +59,7 @@ describe('Container API', () => {
     });
 
     it('should return a container ID', async () => {
-        const c = {
+        const c: Container = {
             name: `${Date.now()}_busybox`,
             image: 'nginx',
             ports: [
@@ -64,6 +68,8 @@ describe('Container API', () => {
                     host: 8888,
                 },
             ],
+            stdout: process.stdout,
+            stderr: process.stderr,
         };
 
         const id = await start(c);
