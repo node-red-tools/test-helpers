@@ -1,0 +1,47 @@
+{
+    "name": "@node-red-tools/test-helpers",
+    "version": "0.1.0",
+    "description": "Collection of test helper functions",
+    "main": "lib/index.js",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/node-red-tools/test-helpers.git"
+    },
+    "keywords": [
+        "node-red",
+        "test",
+        "helpers"
+    ],
+    "author": "Node-Red Community",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/node-red-tools/test-helpers/issues"
+    },
+    "homepage": "https://github.com/node-red-tools/test-helpers#readme",
+    "scripts": {
+        "test": "cross-env NODE_ENV=test mocha --require ts-node/register --watch-extensions ts src/**/*.test.ts",
+        "build": "npm run clean && cross-env NODE_ENV=production tsc -b tsconfig.json",
+        "clean": "rimraf lib/",
+        "fmt": "pretty-quick"
+    },
+    "devDependencies": {
+        "@types/chai": "^4.2.8",
+        "@types/mocha": "^7.0.1",
+        "@types/node": "^13.1.6",
+        "@types/node-red": "^0.20.1",
+        "axios": "^0.19.2",
+        "chai": "^4.2.0",
+        "cross-env": "^6.0.3",
+        "husky": "^4.0.6",
+        "mocha": "^7.0.1",
+        "prettier": "^1.19.1",
+        "pretty-quick": "^2.0.1",
+        "rimraf": "^3.0.0",
+        "source-map-support": "^0.5.16",
+        "ts-node": "^8.6.2",
+        "tslint": "^5.20.1",
+        "tslint-config-airbnb": "^5.11.2",
+        "tslint-config-prettier": "^1.18.0",
+        "typescript": "^3.7.4"
+    }
+}
