@@ -57,7 +57,7 @@ export async function start(f: Flow = {}): Promise<Termination> {
         }
 
         const termination = () => proc.kill();
-        const probeWrapper = chunk => {
+        const probeWrapper = (chunk: any) => {
             const str = String(chunk);
             let resolved = false;
 
