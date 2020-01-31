@@ -76,7 +76,7 @@ describe('Container API', () => {
 
         expect(id).to.not.empty;
 
-        const foundID = await findID(c.name);
+        const foundID = await findID(c.name as string);
 
         await stop(id);
 
