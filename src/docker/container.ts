@@ -1,10 +1,9 @@
 import { exec, spawn } from 'child_process';
 import { Writable } from 'stream';
+import { Termination } from '../common/termination';
 import { DockerError } from './error';
 
 export type Probe = (ports: PortBinding[]) => Promise<void>;
-
-export type Termination = () => Promise<void>;
 
 export interface PortBinding {
     name?: string;

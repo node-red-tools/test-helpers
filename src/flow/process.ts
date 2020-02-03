@@ -1,9 +1,8 @@
 import { spawn } from 'child_process';
 import { Writable } from 'stream';
+import { Termination } from '../common/termination';
 
 export type Probe = (data: string) => boolean;
-
-export type Termination = () => void;
 
 export interface Flow {
     path?: string;
@@ -17,7 +16,7 @@ export interface Flow {
 }
 
 export async function start(f: Flow = {}): Promise<Termination> {
-    return new Promise((resolve, reject) => {
+    return new Promise<Termination>((resolve, reject) => {
         const {
             path = 'flows.json',
             port = 1880,
@@ -56,7 +55,16 @@ export async function start(f: Flow = {}): Promise<Termination> {
             proc.stdout.pipe(stdout);
         }
 
-        const termination = () => proc.kill();
+        const termination: Termination = () => {
+            return new Promise((resolve, reject) => {
+                try {
+                    proc.kill();
+                    resolve();
+                } catch (e) {
+                    reject(e);
+                }
+            });
+        };
         const probeWrapper = (chunk: any) => {
             const str = String(chunk);
             let resolved = false;

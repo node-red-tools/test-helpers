@@ -1,6 +1,7 @@
+import { Termination } from './common/termination';
 import * as docker_ from './docker';
 import { Container, startAll, stopAll } from './docker/container';
-import { Flow, Termination, start } from './flow/process';
+import { Flow, start } from './flow/process';
 
 export const docker = docker_;
 
@@ -10,12 +11,12 @@ export interface Options {
 }
 
 export interface Context {
-    containers?: string[];
+    containers?: Termination[];
     flow: Termination;
 }
 
 export async function setup(opts: Options): Promise<Context> {
-    let containers: string[] | undefined = undefined;
+    let containers: Termination[] | undefined = undefined;
 
     if (opts.containers && opts.containers.length) {
         containers = await startAll(opts.containers);
