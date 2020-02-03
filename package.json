@@ -22,7 +22,8 @@
         "test": "cross-env NODE_ENV=test mocha --timeout 600000 --require ts-node/register --watch-extensions ts src/**/*.test.ts",
         "build": "npm run clean && cross-env NODE_ENV=production tsc -b tsconfig.json",
         "clean": "rimraf lib/",
-        "fmt": "pretty-quick"
+        "fmt": "pretty-quick",
+        "prepublishOnly": "npm run build"
     },
     "devDependencies": {
         "@types/chai": "^4.2.8",
