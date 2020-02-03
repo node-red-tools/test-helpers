@@ -1,6 +1,9 @@
 import axios from 'axios';
-import { expect } from 'chai';
-import { Container, findID, start, stop } from './container';
+import { expect, use } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
+import { Container, findID, start, startAll, stop, stopAll } from './container';
+
+use(chaiAsPromised);
 
 describe('Container API', () => {
     it('should start a container', async () => {
@@ -78,5 +81,82 @@ describe('Container API', () => {
         expect(foundID).to.be.a('string');
 
         await stop(foundID);
+    });
+
+    it('should start all containers', async () => {
+        const c: Container[] = [
+            {
+                name: `${Date.now()}${Math.random()}`,
+                image: 'nginx',
+                ports: [
+                    {
+                        container: 80,
+                        host: 8888,
+                    },
+                ],
+                stdout: process.stdout,
+                stderr: process.stderr,
+            },
+            {
+                name: `${Date.now()}${Math.random()}`,
+                image: 'nginx',
+                ports: [
+                    {
+                        container: 80,
+                        host: 8889,
+                    },
+                ],
+                stdout: process.stdout,
+                stderr: process.stderr,
+            },
+        ];
+
+        const t = await startAll(c);
+
+        await axios(`http://localhost:${c[0].ports[0].host}`);
+        await axios(`http://localhost:${c[1].ports[0].host}`);
+
+        await Promise.all(t.map(i => i()));
+    });
+
+    it('should stop all containers', async () => {
+        const c: Container[] = [
+            {
+                name: `${Date.now()}${Math.random()}`,
+                image: 'nginx',
+                ports: [
+                    {
+                        container: 80,
+                        host: 8888,
+                    },
+                ],
+                stdout: process.stdout,
+                stderr: process.stderr,
+            },
+            {
+                name: `${Date.now()}${Math.random()}`,
+                image: 'nginx',
+                ports: [
+                    {
+                        container: 80,
+                        host: 8889,
+                    },
+                ],
+                stdout: process.stdout,
+                stderr: process.stderr,
+            },
+        ];
+
+        const t = await startAll(c);
+
+        await axios(`http://localhost:${c[0].ports[0].host}`);
+        await axios(`http://localhost:${c[1].ports[0].host}`);
+
+        await stopAll(t);
+
+        expect(axios(`http://localhost:${c[0].ports[0].host}`)).to.eventually
+            .rejected;
+        expect(axios(`http://localhost:${c[1].ports[0].host}`)).to.eventually
+            .rejected;
     });
 });
