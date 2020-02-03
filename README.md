@@ -4,6 +4,47 @@ Collection of test helper functions for Node-Red flows
 
 ![Node.js CI](https://github.com/node-red-tools/test-helpers/workflows/Node.js%20CI/badge.svg)
 
+## Usage
+
+```typescript
+import { setup, teardown } from '@node-red-tools/test-helpers';
+import path from 'path';
+
+before(() => {
+    this.context = setup({
+        flow: {
+            path: path.resolve('../', __dirname),
+        },
+        containers: [
+            {
+                image: 'redis',
+                name: 'test-redis',
+                ports: [
+                    {
+                        host: 6379,
+                        container: 6379,
+                    },
+                ],
+            },
+            {
+                image: 'rabbitmq',
+                name: 'test-rabbitmq',
+                ports: [
+                    {
+                        host: 5672,
+                        container: 5672,
+                    },
+                ],
+            },
+        ],
+    });
+});
+
+after(() => {
+    teardown(this.context);
+});
+```
+
 ## API
 
 ### Docker
@@ -45,7 +86,7 @@ await docker.startAll([
         stdout: process.stdout,
         stderr: process.stderr,
     },
-        {
+    {
         name: 'my_nginx_2',
         image: 'nginx',
         ports: [
@@ -122,7 +163,7 @@ const terminateAll = await docker.startAll([
         stdout: process.stdout,
         stderr: process.stderr,
     },
-        {
+    {
         name: 'my_nginx_2',
         image: 'nginx',
         ports: [
@@ -136,7 +177,7 @@ const terminateAll = await docker.startAll([
     },
 ]);
 
-docker.stopAll(terminateAll)
+docker.stopAll(terminateAll);
 ```
 
 or
@@ -157,7 +198,7 @@ await docker.startAll([
         stdout: process.stdout,
         stderr: process.stderr,
     },
-        {
+    {
         name: 'my_nginx_2',
         image: 'nginx',
         ports: [

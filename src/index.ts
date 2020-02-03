@@ -1,28 +1,27 @@
 import { Termination } from './common/termination';
-import * as docker_ from './docker';
-import { Container, startAll, stopAll } from './docker/container';
-import { Flow, start } from './flow/process';
+import * as dkr from './docker';
+import * as flw from './flow';
 
-export const docker = docker_;
+export const docker = dkr;
+export const flow = flw;
 
 export interface Options {
-    containers?: Container[];
-    flow: Flow;
+    containers?: dkr.Container[];
+    flow: flw.Flow;
 }
-
 export interface Context {
-    containers?: Termination[];
+    containers: Termination[];
     flow: Termination;
 }
 
 export async function setup(opts: Options): Promise<Context> {
-    let containers: Termination[] | undefined = undefined;
+    let containers: Termination[] = [];
 
     if (opts.containers && opts.containers.length) {
-        containers = await startAll(opts.containers);
+        containers = await dkr.container.startAll(opts.containers);
     }
 
-    const flow = await start(opts.flow);
+    const flow = await flw.start(opts.flow);
 
     return {
         containers,
@@ -36,7 +35,7 @@ export async function teardown(ctx: Context): Promise<void> {
     }
 
     if (ctx.containers && ctx.containers.length) {
-        await stopAll(ctx.containers);
+        await dkr.container.stopAll(ctx.containers);
     }
 
     ctx.flow();

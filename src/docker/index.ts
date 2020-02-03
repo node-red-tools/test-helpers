@@ -1,9 +1,26 @@
-import * as container from './container';
+import {
+    Container,
+    PortBinding,
+    Probe,
+    findID,
+    start,
+    startAll,
+    stop,
+    stopAll,
+} from './container';
 import { DockerError } from './error';
-import * as probes from './probes';
+import { http } from './probes';
 
-export default {
-    DockerError,
-    container,
-    probes,
+export { Container, PortBinding, Probe, DockerError };
+
+export const container = {
+    findID,
+    start,
+    startAll,
+    stop,
+    stopAll,
+};
+
+export const probes = {
+    http,
 };

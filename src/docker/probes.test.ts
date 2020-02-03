@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { Container, findID, start } from './container';
 import { http } from './probes';
 
-describe('Containe readines probes', () => {
+describe('Container readines probes', () => {
     describe('HTTP probe', () => {
         it('should resolve a promise if a probe succeeded', async () => {
             const c: Container = {
