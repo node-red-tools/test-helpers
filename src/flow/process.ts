@@ -82,7 +82,7 @@ export async function start(f: Flow = {}): Promise<Termination> {
             }
 
             if (done) {
-                proc.stdout.off('data', probeWrapper);
+                proc.stdout.removeListener('data', probeWrapper);
             }
         };
 
