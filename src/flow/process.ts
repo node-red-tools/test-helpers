@@ -67,18 +67,22 @@ export async function start(f: Flow = {}): Promise<Termination> {
         };
         const probeWrapper = (chunk: any) => {
             const str = String(chunk);
-            let resolved = false;
+            let done = false;
 
-            if (readinessProbe && readinessProbe(str)) {
+            if (str.indexOf('Error') > -1) {
+                reject(new Error(str));
+                termination();
+                done = true;
+            } else if (readinessProbe && readinessProbe(str)) {
                 resolve(termination);
-                resolved = true;
-            } else if (str.indexOf('Started flows') > -1) {
+                done = true;
+            } else if (str.indexOf('Server now running') > -1) {
                 resolve(termination);
-                resolved = true;
+                done = true;
             }
 
-            if (resolved) {
-                proc.stdout.off('dta', probeWrapper);
+            if (done) {
+                proc.stdout.removeListener('data', probeWrapper);
             }
         };
 
