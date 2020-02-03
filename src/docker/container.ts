@@ -4,6 +4,8 @@ import { DockerError } from './error';
 
 export type Probe = (ports: PortBinding[]) => Promise<void>;
 
+export type Termination = () => Promise<void>;
+
 export interface PortBinding {
     name?: string;
     host: number;
@@ -42,7 +44,7 @@ export async function findID(name: string): Promise<string> {
     });
 }
 
-export async function start(c: Container): Promise<string> {
+export async function start(c: Container): Promise<Termination> {
     if (!c) {
         throw new Error('Missed container configuration');
     }
@@ -61,19 +63,14 @@ export async function start(c: Container): Promise<string> {
         const foundId = await findID(c.name);
 
         if (foundId) {
-            return foundId;
+            return () => stop(foundId);
         }
     }
 
     await new Promise((resolve, reject) => {
-        const args = [
-            'run',
-            '-d',
-            '--name',
-            name,
-        ];
+        const args = ['run', '-d', '--name', name];
 
-        c.ports.forEach((b) => {
+        c.ports.forEach(b => {
             args.push('-p');
             args.push(`${b.host}:${b.container}`);
         });
@@ -86,7 +83,7 @@ export async function start(c: Container): Promise<string> {
             if (code !== 0) {
                 reject(
                     new DockerError(
-                        `Failed to strt a container. Process exited with code: ${code}.`,
+                        `Failed to start a container. Process exited with code: ${code}.`,
                     ),
                 );
 
@@ -112,7 +109,9 @@ export async function start(c: Container): Promise<string> {
         }
     });
 
-    return findID(name);
+    const id = await findID(name);
+
+    return () => stop(id);
 }
 
 export async function stop(id: string): Promise<void> {
@@ -137,13 +136,21 @@ export async function stop(id: string): Promise<void> {
     });
 }
 
-export async function stopAll(ids: string[] = []): Promise<void> {
+export async function stopAll(
+    ids: string[] | Termination[] = [],
+): Promise<void> {
     const errors: Error[] = [];
     const len = ids.length;
 
     for (let i = 0; i < len; i += 1) {
         try {
-            await stop(ids[i]);
+            const idOrFn = ids[i];
+
+            if (typeof idOrFn === 'function') {
+                await idOrFn();
+            } else {
+                await stop(idOrFn);
+            }
         } catch (e) {
             errors.push(e);
         }
@@ -154,8 +161,10 @@ export async function stopAll(ids: string[] = []): Promise<void> {
     }
 }
 
-export async function startAll(configs: Container[] = []): Promise<string[]> {
-    const launched: string[] = [];
+export async function startAll(
+    configs: Container[] = [],
+): Promise<Termination[]> {
+    const launched: Termination[] = [];
     const errors: Error[] = [];
     const len = configs.length;
 

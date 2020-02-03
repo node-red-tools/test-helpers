@@ -1,6 +1,5 @@
 import axios from 'axios';
 import { expect } from 'chai';
-import { execSync } from 'child_process';
 import { Container, findID, start, stop } from './container';
 
 describe('Container API', () => {
@@ -18,13 +17,13 @@ describe('Container API', () => {
             stderr: process.stderr,
         };
 
-        const id = await start(c);
+        const termination = await start(c);
 
-        expect(id).to.not.empty;
+        expect(termination).to.be.a('function');
 
         await axios(`http://localhost:${c.ports[0].host}`);
 
-        execSync(`docker rm ${id} -f`);
+        await termination();
     });
 
     it('should stop a container', async () => {
@@ -41,11 +40,11 @@ describe('Container API', () => {
             stderr: process.stderr,
         };
 
-        const id = await start(c);
+        const termination = await start(c);
 
-        expect(id).to.not.empty;
+        expect(termination).to.be.a('function');
 
-        await stop(id);
+        await termination();
 
         let err: Error | undefined = undefined;
 
@@ -72,14 +71,12 @@ describe('Container API', () => {
             stderr: process.stderr,
         };
 
-        const id = await start(c);
-
-        expect(id).to.not.empty;
+        await start(c);
 
         const foundID = await findID(c.name as string);
 
-        await stop(id);
+        expect(foundID).to.be.a('string');
 
-        expect(foundID).to.eql(id);
+        await stop(foundID);
     });
 });
