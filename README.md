@@ -10,10 +10,10 @@ Collection of test helper functions for Node-Red flows
 import { setup, teardown } from '@node-red-tools/test-helpers';
 import path from 'path';
 
-before(() => {
-    this.context = setup({
+before(async function() {
+    this.context = await setup({
         flow: {
-            path: path.resolve('../', __dirname),
+            userDir: process.cwd(),
         },
         containers: [
             {
@@ -40,8 +40,8 @@ before(() => {
     });
 });
 
-after(() => {
-    teardown(this.context);
+after(async function() {
+    await teardown(this.context);
 });
 ```
 
