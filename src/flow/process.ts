@@ -1,8 +1,8 @@
+import axios from 'axios';
 import { spawn } from 'child_process';
 import { Writable } from 'stream';
+import { Probe, perform } from '../common/probe';
 import { Termination } from '../common/termination';
-
-export type Probe = (data: string) => boolean;
 
 export interface Flow {
     path?: string;
@@ -65,27 +65,17 @@ export async function start(f: Flow = {}): Promise<Termination> {
                 }
             });
         };
-        const probeWrapper = (chunk: any) => {
-            const str = String(chunk);
-            let done = false;
 
-            if (str.indexOf('Error') > -1) {
-                reject(new Error(str));
-                termination();
-                done = true;
-            } else if (readinessProbe && readinessProbe(str)) {
-                resolve(termination);
-                done = true;
-            } else if (str.indexOf('Server now running') > -1) {
-                resolve(termination);
-                done = true;
-            }
-
-            if (done) {
-                proc.stdout.removeListener('data', probeWrapper);
-            }
+        const probe: Probe = readinessProbe || {
+            initialDelaySeconds: 2,
+            failureThreshold: 5,
+            fn: async (ports: number[]) => {
+                await axios.get(`http://127.0.0.1:${ports[0]}`);
+            },
         };
 
-        proc.stdout.on('data', probeWrapper);
+        perform(probe, [port])
+            .then(() => resolve(termination))
+            .catch(reject);
     });
 }

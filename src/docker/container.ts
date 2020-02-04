@@ -1,9 +1,8 @@
 import { exec, spawn } from 'child_process';
 import { Writable } from 'stream';
+import { Probe, perform } from '../common/probe';
 import { Termination } from '../common/termination';
 import { DockerError } from './error';
-
-export type Probe = (ports: PortBinding[]) => Promise<void>;
 
 export interface PortBinding {
     name?: string;
@@ -90,8 +89,9 @@ export async function start(c: Container): Promise<Termination> {
             }
 
             if (c.readinessProbe) {
-                return c
-                    .readinessProbe(c.ports)
+                const ports = c.ports.map(i => i.host);
+
+                return perform(c.readinessProbe, ports)
                     .then(resolve)
                     .catch(reject);
             }

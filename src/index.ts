@@ -1,9 +1,11 @@
 import { Termination } from './common/termination';
 import * as dkr from './docker';
 import * as flw from './flow';
+import * as prb from './probes';
 
 export const docker = dkr;
 export const flow = flw;
+export const probes = prb;
 
 export interface Options {
     containers?: dkr.Container[];
