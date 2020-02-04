@@ -2,6 +2,7 @@
 
 Collection of test helper functions for Node-Red flows
 
+![npm (scoped)](https://img.shields.io/npm/v/@node-red-tools/test-helpers)
 ![Node.js CI](https://github.com/node-red-tools/test-helpers/workflows/Node.js%20CI/badge.svg)
 
 ## Usage
