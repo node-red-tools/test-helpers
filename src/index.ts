@@ -1,3 +1,4 @@
+import { HelperError } from './common/error';
 import { Termination } from './common/termination';
 import * as dkr from './docker';
 import * as flw from './flow';
@@ -36,9 +37,25 @@ export async function teardown(ctx: Context): Promise<void> {
         return Promise.reject(new Error('Missed context.'));
     }
 
-    if (ctx.containers && ctx.containers.length) {
-        await dkr.container.stopAll(ctx.containers);
+    const errors: Error[] = [];
+
+    try {
+        await ctx.flow();
+    } catch (e) {
+        errors.push(e);
+    } finally {
+        if (ctx.containers && ctx.containers.length) {
+            try {
+                await dkr.container.stopAll(ctx.containers);
+            } catch (e2) {
+                errors.push(e2);
+            }
+        }
     }
 
-    ctx.flow();
+    if (errors.length) {
+        return Promise.reject(
+            new HelperError('Failed to tear down', ...errors),
+        );
+    }
 }

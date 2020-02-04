@@ -45,6 +45,55 @@ after(() => {
 });
 ```
 
+### Using readiness probes
+
+```typescript
+import { setup, teardown, probes } from '@node-red-tools/test-helpers';
+import axios from 'axios';
+import path from 'path';
+
+before(() => {
+    this.context = setup({
+        flow: {
+            path: path.resolve('../', __dirname),
+            readinessProbe: {
+                failureThreshold: 3,
+                fn: probes.http({
+                    method: 'GET',
+                    path: '/my-endpoint',
+                }),
+            },
+        },
+        containers: [
+            {
+                image: 'redis',
+                name: 'test-redis',
+                ports: [
+                    {
+                        host: 6379,
+                        container: 6379,
+                    },
+                ],
+            },
+            {
+                image: 'rabbitmq',
+                name: 'test-rabbitmq',
+                ports: [
+                    {
+                        host: 5672,
+                        container: 5672,
+                    },
+                ],
+            },
+        ],
+    });
+});
+
+after(() => {
+    teardown(this.context);
+});
+```
+
 ## API
 
 ### Docker
@@ -218,4 +267,30 @@ const ids = await Promise.all([
 ]);
 
 await docker.stopAll(ids);
+```
+
+### Flow
+
+#### Start
+
+```typescript
+import { flow } from '@node-red-tools/test-helpers';
+
+await flow.start({
+    userDir: process.cwd()
+});
+```
+
+
+#### Stop
+
+```typescript
+import { flow } from '@node-red-tools/test-helpers';
+
+const termination = await flow.start({
+    userDir: process.cwd()
+});
+
+await termination();
+
 ```

@@ -1,8 +1,8 @@
 import { exec, spawn } from 'child_process';
 import { Writable } from 'stream';
+import { HelperError } from '../common/error';
 import { Probe, perform } from '../common/probe';
 import { Termination } from '../common/termination';
-import { DockerError } from './error';
 
 export interface PortBinding {
     name?: string;
@@ -29,12 +29,12 @@ export async function findID(name: string): Promise<string> {
         exec(`docker ps -f name=^/${name}$ -q`, (err, stdout, stderr) => {
             if (err) {
                 return reject(
-                    new DockerError('Failed to find a container ID.', err),
+                    new HelperError('Failed to find a container ID.', err),
                 );
             }
 
             if (stderr) {
-                return reject(new DockerError(stderr));
+                return reject(new HelperError(stderr));
             }
 
             return resolve(stdout.replace('\n', ''));
@@ -44,15 +44,15 @@ export async function findID(name: string): Promise<string> {
 
 export async function start(c: Container): Promise<Termination> {
     if (!c) {
-        throw new Error('Missed container configuration');
+        throw new HelperError('Missed container configuration');
     }
 
     if (!c.image) {
-        throw new Error('Missed container image');
+        throw new HelperError('Missed container image');
     }
 
     if (!c.ports || !c.ports) {
-        throw new Error('Missed container port bindings');
+        throw new HelperError('Missed container port bindings');
     }
 
     const name = c.name || generateName();
@@ -80,7 +80,7 @@ export async function start(c: Container): Promise<Termination> {
         stream.on('exit', code => {
             if (code !== 0) {
                 reject(
-                    new DockerError(
+                    new HelperError(
                         `Failed to start a container. Process exited with code: ${code}.`,
                     ),
                 );
@@ -115,19 +115,19 @@ export async function start(c: Container): Promise<Termination> {
 
 export async function stop(id: string): Promise<void> {
     if (!id) {
-        throw new Error('Missed container id');
+        throw new HelperError('Missed container id');
     }
 
     return new Promise((resolve, reject) => {
         exec(`docker rm ${id} -f`, (err, _, stderr) => {
             if (err) {
                 return reject(
-                    new DockerError('Failed to stop a container.', err),
+                    new HelperError('Failed to stop a container.', err),
                 );
             }
 
             if (stderr) {
-                return reject(new DockerError(stderr));
+                return reject(new HelperError(stderr));
             }
 
             return resolve();
@@ -156,7 +156,7 @@ export async function stopAll(
     }
 
     if (errors.length > 0) {
-        throw new DockerError('Failed to stop all containers.', ...errors);
+        throw new HelperError('Failed to stop all containers.', ...errors);
     }
 }
 
@@ -184,7 +184,7 @@ export async function startAll(
     }
 
     if (errors.length) {
-        throw new DockerError('Failed to start all containers.', ...errors);
+        throw new HelperError('Failed to start all containers.', ...errors);
     }
 
     return launched;

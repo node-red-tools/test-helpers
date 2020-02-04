@@ -1,3 +1,4 @@
+import { HelperError } from '../common/error';
 import {
     Container,
     PortBinding,
@@ -7,9 +8,8 @@ import {
     stop,
     stopAll,
 } from './container';
-import { DockerError } from './error';
 
-export { Container, PortBinding, DockerError };
+export { Container, PortBinding, HelperError };
 
 export const container = {
     findID,
