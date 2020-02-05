@@ -28,7 +28,7 @@ export async function start(f: Flow = {}): Promise<Termination> {
             readinessProbe,
         } = f;
         const args = [
-            'node-red',
+            'node_modules/.bin/node-red',
             '-p',
             `${port}`,
             '--userDir',
@@ -38,7 +38,7 @@ export async function start(f: Flow = {}): Promise<Termination> {
             path,
         ];
 
-        const proc = spawn(`npx`, args, {
+        const proc = spawn('node', args, {
             env: {
                 ...process.env,
                 ...env,

@@ -14,6 +14,7 @@ export interface Container {
     image: string;
     name?: string;
     ports: PortBinding[];
+    env?: { [key: string]: string };
     readinessProbe?: Probe;
     stderr?: Writable;
     stdout?: Writable;
@@ -71,6 +72,14 @@ export async function start(c: Container): Promise<Termination> {
         c.ports.forEach(b => {
             args.push('-p');
             args.push(`${b.host}:${b.container}`);
+        });
+
+        const env = c.env || {};
+        Object.keys(env).forEach(key => {
+            const value = env[key];
+
+            args.push('-e');
+            args.push(`${key}=${value}`);
         });
 
         args.push(c.image);
