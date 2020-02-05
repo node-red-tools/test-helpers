@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { Container, findID, start } from './container';
-import { http } from './probes';
+import { Container, findID, start } from '../docker/container';
+import { request } from './http';
 
 describe('Container readines probes', () => {
     describe('HTTP probe', () => {
@@ -14,10 +14,13 @@ describe('Container readines probes', () => {
                         host: 8888,
                     },
                 ],
-                readinessProbe: http({
-                    method: 'GET',
-                    path: '/',
-                }),
+                readinessProbe: {
+                    failureThreshold: 2,
+                    fn: request({
+                        method: 'GET',
+                        path: '/',
+                    }),
+                },
                 stdout: process.stdout,
                 stderr: process.stderr,
             };

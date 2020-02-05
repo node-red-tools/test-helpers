@@ -1,6 +1,6 @@
 {
     "name": "@node-red-tools/test-helpers",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "description": "Collection of test helper functions",
     "main": "lib/index.js",
     "repository": {
@@ -34,6 +34,7 @@
         "@types/node-red": "^0.20.1",
         "amqplib": "^0.5.5",
         "axios": "^0.19.2",
+        "@types/retry": "^0.12.0",
         "chai": "^4.2.0",
         "chai-as-promised": "^7.1.1",
         "cross-env": "^6.0.3",
@@ -50,5 +51,9 @@
         "tslint-config-airbnb": "^5.11.2",
         "tslint-config-prettier": "^1.18.0",
         "typescript": "^3.7.4"
+    },
+    "dependencies": {
+        "axios": "^0.19.2",
+        "p-retry": "^4.2.0"
     }
 }

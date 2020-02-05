@@ -1,10 +1,13 @@
 import { Connection, connect } from 'amqplib';
+import { HelperError } from './common/error';
 import { Termination } from './common/termination';
 import * as dkr from './docker';
 import * as flw from './flow';
+import * as prb from './probes';
 
 export const docker = dkr;
 export const flow = flw;
+export const probes = prb;
 
 export interface Options {
     containers?: dkr.Container[];
@@ -41,11 +44,27 @@ export async function teardown(ctx: Context): Promise<void> {
         return Promise.reject(new Error('Missed context.'));
     }
 
-    if (ctx.containers && ctx.containers.length) {
-        await dkr.container.stopAll(ctx.containers);
+    const errors: Error[] = [];
+
+    try {
+        await ctx.terminateFlow();
+    } catch (e) {
+        errors.push(e);
+    } finally {
+        if (ctx.containers && ctx.containers.length) {
+            try {
+                await dkr.container.stopAll(ctx.containers);
+            } catch (e2) {
+                errors.push(e2);
+            }
+        }
     }
 
-    ctx.terminateFlow();
+    if (errors.length) {
+        return Promise.reject(
+            new HelperError('Failed to tear down', ...errors),
+        );
+    }
 }
 
 export async function test(

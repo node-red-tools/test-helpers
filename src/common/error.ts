@@ -1,4 +1,4 @@
-export class DockerError extends Error {
+export class HelperError extends Error {
     public errors: Error[];
 
     constructor(msg: string, ...errors: Error[]) {

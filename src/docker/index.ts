@@ -1,17 +1,15 @@
+import { HelperError } from '../common/error';
 import {
     Container,
     PortBinding,
-    Probe,
     findID,
     start,
     startAll,
     stop,
     stopAll,
 } from './container';
-import { DockerError } from './error';
-import { http } from './probes';
 
-export { Container, PortBinding, Probe, DockerError };
+export { Container, PortBinding, HelperError };
 
 export const container = {
     findID,
@@ -19,8 +17,4 @@ export const container = {
     startAll,
     stop,
     stopAll,
-};
-
-export const probes = {
-    http,
 };
