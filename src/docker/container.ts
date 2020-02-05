@@ -1,8 +1,8 @@
 import { exec, spawn } from 'child_process';
 import { Writable } from 'stream';
 import { HelperError } from '../common/error';
-import { Probe, perform } from '../common/probe';
 import { Termination } from '../common/termination';
+import { Probe, perform } from '../probes/probe';
 
 export interface PortBinding {
     name?: string;

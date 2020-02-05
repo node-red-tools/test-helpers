@@ -1,35 +1,61 @@
-import { HelperError } from './common/error';
-import { Termination } from './common/termination';
+import { Termination, terminate } from './common/termination';
+import { Context } from './context';
 import * as dkr from './docker';
 import * as flw from './flow';
 import * as prb from './probes';
+import * as rsc from './resources';
 
 export const docker = dkr;
 export const flow = flw;
-export const probes = prb;
+export const probes = prb.builtin;
+export const resources = rsc.builtin;
+export const makeGlobal = rsc.makeGlobal;
 
 export interface Options {
     containers?: dkr.Container[];
     flow: flw.Flow;
-}
-export interface Context {
-    containers: Termination[];
-    flow: Termination;
+    resources?: rsc.Factories;
 }
 
 export async function setup(opts: Options): Promise<Context> {
-    let containers: Termination[] = [];
+    const terminables: Termination[] = [];
 
     if (opts.containers && opts.containers.length) {
-        containers = await dkr.container.startAll(opts.containers);
+        const terminations = await dkr.container.startAll(opts.containers);
+
+        terminations.forEach(i => terminables.push(i));
     }
 
-    const flow = await flw.start(opts.flow);
+    try {
+        const termination = await flw.start(opts.flow);
 
-    return {
-        containers,
-        flow,
-    };
+        terminables.push(termination);
+    } catch (e) {
+        await terminate(...terminables);
+
+        throw e;
+    }
+
+    const values: rsc.InitializedResources = {};
+
+    if (opts.resources) {
+        try {
+            const valuePairs = await rsc.init(opts.resources);
+
+            Object.keys(valuePairs).forEach(key => {
+                const [value, termination] = valuePairs[key];
+
+                values[key] = value;
+                terminables.push(termination);
+            });
+        } catch (e) {
+            await terminate(...terminables);
+
+            throw e;
+        }
+    }
+
+    return new Context(terminables.reverse(), values);
 }
 
 export async function teardown(ctx: Context): Promise<void> {
@@ -37,25 +63,5 @@ export async function teardown(ctx: Context): Promise<void> {
         return Promise.reject(new Error('Missed context.'));
     }
 
-    const errors: Error[] = [];
-
-    try {
-        await ctx.flow();
-    } catch (e) {
-        errors.push(e);
-    } finally {
-        if (ctx.containers && ctx.containers.length) {
-            try {
-                await dkr.container.stopAll(ctx.containers);
-            } catch (e2) {
-                errors.push(e2);
-            }
-        }
-    }
-
-    if (errors.length) {
-        return Promise.reject(
-            new HelperError('Failed to tear down', ...errors),
-        );
-    }
+    return ctx.destroy();
 }

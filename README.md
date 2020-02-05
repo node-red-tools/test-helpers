@@ -9,6 +9,7 @@ Collection of test helper functions for Node-Red flows
 
 ```typescript
 import { setup, teardown } from '@node-red-tools/test-helpers';
+import amqp from 'amqplib';
 import path from 'path';
 
 before(async function() {
@@ -38,7 +39,16 @@ before(async function() {
                 ],
             },
         ],
+        values: {
+            rabbitmq: async () => {
+                const conn = await amqp.connect('amqp://127.0.0.1');
+
+                return [conn, () => conn.close()];
+            },
+        },
     });
+
+    global.rabbitmq = ctx.values.rabbitmq;
 });
 
 after(async function() {
@@ -278,10 +288,9 @@ await docker.stopAll(ids);
 import { flow } from '@node-red-tools/test-helpers';
 
 await flow.start({
-    userDir: process.cwd()
+    userDir: process.cwd(),
 });
 ```
-
 
 #### Stop
 
@@ -289,9 +298,8 @@ await flow.start({
 import { flow } from '@node-red-tools/test-helpers';
 
 const termination = await flow.start({
-    userDir: process.cwd()
+    userDir: process.cwd(),
 });
 
 await termination();
-
 ```

@@ -1,5 +1,7 @@
 import * as http from './http';
 
-export const probes = {
+export * from './probe';
+
+export const builtin = {
     http,
 };
