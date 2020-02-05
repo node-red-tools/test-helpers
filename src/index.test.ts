@@ -191,8 +191,8 @@ describe('setup', () => {
                     const value = new MockValue();
 
                     return [value, () => value.close()];
-                }
-            }
+                },
+            },
         });
 
         expect(ctx).to.be.a('object');
