@@ -1,18 +1,20 @@
 import { Termination, terminate } from './common/termination';
-import { Factories, create } from './common/value';
-import { Context, ContextValues } from './context';
+import { Context } from './context';
 import * as dkr from './docker';
 import * as flw from './flow';
 import * as prb from './probes';
+import * as rsc from './resources';
 
 export const docker = dkr;
 export const flow = flw;
-export const probes = prb;
+export const probes = prb.builtin;
+export const resources = rsc.builtin;
+export const makeGlobal = rsc.makeGlobal;
 
 export interface Options {
     containers?: dkr.Container[];
     flow: flw.Flow;
-    values?: Factories;
+    resources?: rsc.Factories;
 }
 
 export async function setup(opts: Options): Promise<Context> {
@@ -34,11 +36,11 @@ export async function setup(opts: Options): Promise<Context> {
         throw e;
     }
 
-    const values: ContextValues = {};
+    const values: rsc.InitializedResources = {};
 
-    if (opts.values) {
+    if (opts.resources) {
         try {
-            const valuePairs = await create(opts.values);
+            const valuePairs = await rsc.init(opts.resources);
 
             Object.keys(valuePairs).forEach(key => {
                 const [value, termination] = valuePairs[key];

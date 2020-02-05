@@ -1,21 +1,23 @@
 import { Termination, terminate } from './common/termination';
 import { HelperError } from './docker';
-
-export type ContextValues = { [key: string]: any };
+import { InitializedResources } from './resources';
 
 export class Context {
     private readonly __terminables: Termination[];
-    private readonly __values: Readonly<ContextValues>;
+    private readonly __resources: Readonly<InitializedResources>;
     private __isClosed: boolean;
 
-    constructor(terminables: Termination[] = [], values: ContextValues = {}) {
+    constructor(
+        terminables: Termination[] = [],
+        values: InitializedResources = {},
+    ) {
         this.__terminables = terminables;
-        this.__values = Object.freeze(values);
+        this.__resources = Object.freeze(values);
         this.__isClosed = false;
     }
 
-    public get values(): Readonly<ContextValues> {
-        return this.__values;
+    public get resources(): Readonly<InitializedResources> {
+        return this.__resources;
     }
 
     public async destroy(): Promise<void> {

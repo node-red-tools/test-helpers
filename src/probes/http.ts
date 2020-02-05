@@ -1,5 +1,5 @@
 import axios, { Method } from 'axios';
-import { ProbeFn } from '../common/probe';
+import { ProbeFn } from './probe';
 
 export interface HttpOptions {
     path: string;

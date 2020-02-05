@@ -1,39 +1,41 @@
-import { HelperError } from './error';
-import { Termination } from './termination';
+import { HelperError } from '../common/error';
+import { Termination } from '../common/termination';
 
-export type Value = [any, Termination];
+export type Resource<T = any> = [T, Termination];
 
-export type Factory = () => Promise<Value>;
+export type Factory<T = any> = () => Promise<Resource<T>>;
 
 export type Factories = { [key: string]: Factory };
 
-export type Values = { [key: string]: Value };
+export type Resources = { [key: string]: Resource };
 
-export async function create(factories: Factories = {}): Promise<Values> {
+export type InitializedResources = { [key: string]: any };
+
+export async function init(factories: Factories = {}): Promise<Resources> {
     const keys = Object.keys(factories);
     const len = keys.length;
     const errors: Error[] = [];
-    const result: Values = {};
+    const resources: Resources = {};
 
     for (let i = 0; i < len; i += 1) {
         try {
             const key = keys[i];
             const value = await factories[key]();
 
-            result[key] = value;
+            resources[key] = value;
         } catch (e) {
             errors.push(e);
         }
     }
 
     if (errors.length) {
-        const keys = Object.keys(result);
+        const keys = Object.keys(resources);
         const len = keys.length;
 
         for (let i = 0; i < len; i += 1) {
             try {
                 const key = keys[i];
-                const termination = result[key][1];
+                const termination = resources[key][1];
                 await termination();
             } catch (e) {
                 errors.push(e);
@@ -45,5 +47,5 @@ export async function create(factories: Factories = {}): Promise<Values> {
         );
     }
 
-    return result;
+    return resources;
 }

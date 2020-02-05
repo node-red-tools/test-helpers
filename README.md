@@ -44,8 +44,8 @@ before(async function() {
                 const conn = await amqp.connect('amqp://127.0.0.1');
 
                 return [conn, () => conn.close()];
-            }
-        }
+            },
+        },
     });
 
     global.rabbitmq = ctx.values.rabbitmq;
@@ -288,10 +288,9 @@ await docker.stopAll(ids);
 import { flow } from '@node-red-tools/test-helpers';
 
 await flow.start({
-    userDir: process.cwd()
+    userDir: process.cwd(),
 });
 ```
-
 
 #### Stop
 
@@ -299,9 +298,8 @@ await flow.start({
 import { flow } from '@node-red-tools/test-helpers';
 
 const termination = await flow.start({
-    userDir: process.cwd()
+    userDir: process.cwd(),
 });
 
 await termination();
-
 ```
