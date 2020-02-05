@@ -3,7 +3,30 @@ import { expect } from 'chai';
 import fs from 'fs';
 import { tmpdir } from 'os';
 import path from 'path';
+import { sleep } from './common/sleep';
 import { docker, setup, teardown } from './index';
+
+class MockValue {
+    private __isClosed: boolean;
+
+    constructor() {
+        this.__isClosed = false;
+    }
+
+    public get isClosed(): boolean {
+        return this.__isClosed;
+    }
+
+    public async close(): Promise<void> {
+        if (this.__isClosed) {
+            return Promise.reject(new Error('Value is closed'));
+        }
+
+        this.__isClosed = true;
+
+        await sleep(1000);
+    }
+}
 
 describe('setup', () => {
     it('should start containers and a flow', async () => {
@@ -53,8 +76,7 @@ describe('setup', () => {
         });
 
         expect(ctx).to.exist;
-        expect(ctx.flow).to.be.a('function');
-        expect(ctx.containers).to.be.an('array');
+        expect(ctx.destroy).to.be.a('function');
 
         let err: Error | undefined;
 
@@ -67,8 +89,7 @@ describe('setup', () => {
         const redisID = await docker.container.findID('test-redis');
         const rabbitmqID = await docker.container.findID('test-rabbitmq');
 
-        await ctx.flow();
-        await Promise.all(ctx.containers.map(i => i()));
+        await ctx.destroy();
         fs.unlinkSync(settingsFile);
 
         expect(err).to.be.undefined;
@@ -123,8 +144,7 @@ describe('setup', () => {
         });
 
         expect(ctx).to.exist;
-        expect(ctx.flow).to.be.a('function');
-        expect(ctx.containers).to.be.an('array');
+        expect(ctx.destroy).to.be.a('function');
 
         await teardown(ctx);
 
@@ -144,5 +164,42 @@ describe('setup', () => {
         expect(err).to.not.be.undefined;
         expect(redisID).to.be.empty;
         expect(rabbitmqID).to.be.empty;
+    });
+
+    it('should use global values', async () => {
+        const baseDir = tmpdir();
+        const settingsFile = path.join(baseDir, 'settings.js');
+
+        fs.writeFileSync(
+            settingsFile,
+            `
+            module.exports = {};
+        `,
+        );
+
+        const ctx = await setup({
+            flow: {
+                userDir: baseDir,
+                settings: settingsFile,
+                stdout: process.stdout,
+                stderr: process.stderr,
+            },
+            values: {
+                test: async () => {
+                    await sleep(1000);
+
+                    const value = new MockValue();
+
+                    return [value, () => value.close()];
+                }
+            }
+        });
+
+        expect(ctx).to.be.a('object');
+        expect(ctx.values().test).to.be.an.instanceOf(MockValue);
+
+        await ctx.destroy();
+
+        fs.unlinkSync(settingsFile);
     });
 });
