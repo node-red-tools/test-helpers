@@ -14,7 +14,7 @@ export class Context {
         this.__isClosed = false;
     }
 
-    public values(): Readonly<ContextValues> {
+    public get values(): Readonly<ContextValues> {
         return this.__values;
     }
 

@@ -196,7 +196,7 @@ describe('setup', () => {
         });
 
         expect(ctx).to.be.a('object');
-        expect(ctx.values().test).to.be.an.instanceOf(MockValue);
+        expect(ctx.values.test).to.be.an.instanceOf(MockValue);
 
         await ctx.destroy();
 
