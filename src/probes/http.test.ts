@@ -2,11 +2,11 @@ import { expect } from 'chai';
 import { Container, findID, start } from '../docker/container';
 import { request } from './http';
 
-describe('Container readines probes', () => {
+describe('Container readiness probes', () => {
     describe('HTTP probe', () => {
         it('should resolve a promise if a probe succeeded', async () => {
             const c: Container = {
-                name: `${Date.now()}_busybox`,
+                name: `${Date.now()}${Math.random()}`,
                 image: 'nginx',
                 ports: [
                     {

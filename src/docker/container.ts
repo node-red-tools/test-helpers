@@ -102,6 +102,18 @@ export async function start(c: Container): Promise<Termination> {
 
                 return perform(c.readinessProbe, ports)
                     .then(resolve)
+                    .catch(reason => {
+                        return findID(name)
+                            .then((id: string) => {
+                                // not started
+                                if (!id) {
+                                    return Promise.reject(reason);
+                                }
+
+                                // it's started, but probe failed. need to stop
+                                return stop(id);
+                            }).then(() => reject(reason));
+                    })
                     .catch(reject);
             }
 
