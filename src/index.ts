@@ -1,3 +1,4 @@
+import { Connection, connect } from 'amqplib';
 import { Termination } from './common/termination';
 import * as dkr from './docker';
 import * as flw from './flow';
@@ -8,10 +9,13 @@ export const flow = flw;
 export interface Options {
     containers?: dkr.Container[];
     flow: flw.Flow;
+    connectUrl: string;
 }
+
 export interface Context {
     containers: Termination[];
-    flow: Termination;
+    terminateFlow: Termination;
+    connection: Connection;
 }
 
 export async function setup(opts: Options): Promise<Context> {
@@ -21,11 +25,14 @@ export async function setup(opts: Options): Promise<Context> {
         containers = await dkr.container.startAll(opts.containers);
     }
 
-    const flow = await flw.start(opts.flow);
+    const terminateFlow = await flw.start(opts.flow);
+
+    const connection = await connect(opts.connectUrl);
 
     return {
         containers,
-        flow,
+        terminateFlow,
+        connection
     };
 }
 
@@ -38,5 +45,13 @@ export async function teardown(ctx: Context): Promise<void> {
         await dkr.container.stopAll(ctx.containers);
     }
 
-    ctx.flow();
+    ctx.terminateFlow();
+}
+
+export async function test(
+    ctx: Context,
+    input: flw.Input,
+    output: flw.Output,
+): Promise<void> {
+    await flw.testFlow(ctx.connection, input, output);
 }

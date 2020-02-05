@@ -26,11 +26,13 @@
         "prepublishOnly": "npm run build"
     },
     "devDependencies": {
+        "@types/amqplib": "^0.5.13",
         "@types/chai": "^4.2.8",
         "@types/chai-as-promised": "^7.1.2",
         "@types/mocha": "^7.0.1",
         "@types/node": "^13.1.6",
         "@types/node-red": "^0.20.1",
+        "amqplib": "^0.5.5",
         "axios": "^0.19.2",
         "chai": "^4.2.0",
         "chai-as-promised": "^7.1.1",
@@ -41,6 +43,7 @@
         "prettier": "^1.19.1",
         "pretty-quick": "^2.0.1",
         "rimraf": "^3.0.0",
+        "should": "^13.2.3",
         "source-map-support": "^0.5.16",
         "ts-node": "^8.6.2",
         "tslint": "^5.20.1",

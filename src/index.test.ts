@@ -18,6 +18,7 @@ describe('setup', () => {
         );
 
         const ctx = await setup({
+            connectUrl: "",
             flow: {
                 userDir: baseDir,
                 settings: settingsFile,
@@ -53,7 +54,7 @@ describe('setup', () => {
         });
 
         expect(ctx).to.exist;
-        expect(ctx.flow).to.be.a('function');
+        expect(ctx.terminateFlow).to.be.a('function');
         expect(ctx.containers).to.be.an('array');
 
         let err: Error | undefined;
@@ -67,7 +68,7 @@ describe('setup', () => {
         const redisID = await docker.container.findID('test-redis');
         const rabbitmqID = await docker.container.findID('test-rabbitmq');
 
-        await ctx.flow();
+        await ctx.terminateFlow();
         await Promise.all(ctx.containers.map(i => i()));
         fs.unlinkSync(settingsFile);
 
@@ -88,6 +89,7 @@ describe('setup', () => {
         );
 
         const ctx = await setup({
+            connectUrl: "",
             flow: {
                 userDir: baseDir,
                 settings: settingsFile,
@@ -123,7 +125,7 @@ describe('setup', () => {
         });
 
         expect(ctx).to.exist;
-        expect(ctx.flow).to.be.a('function');
+        expect(ctx.terminateFlow).to.be.a('function');
         expect(ctx.containers).to.be.an('array');
 
         await teardown(ctx);
