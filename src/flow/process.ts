@@ -28,7 +28,7 @@ export async function start(f: Flow = {}): Promise<Termination> {
             readinessProbe,
         } = f;
         const args = [
-            'node_modules/.bin/node-red',
+            'node_modules/node-red/red.js',
             '-p',
             `${port}`,
             '--userDir',
