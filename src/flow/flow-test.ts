@@ -1,16 +1,9 @@
 import { Channel, Connection, ConsumeMessage } from "amqplib";
-import { should } from "should";
+import { expect } from 'chai';
 
 interface MessageResult {
     complete: boolean;
     err?: string;
-}
-
-async function initConsumer(conn: Connection, outQueue: string): Promise<Channel> {
-    const chan = await conn.createChannel();
-    await chan.assertQueue(outQueue);
-
-    return chan;
 }
 
 interface CreateMessageOut {
@@ -43,13 +36,13 @@ function createReceiveMessageCallback(
         } else {
             succeed();
         }
-    }, 5000);
+    }, 10000);
 
     const consumerPromise = new Promise<void>((accept, reject) => {
-        setInterval(async () => {
+        const interval = setInterval(async () => {
             if (res.complete) {
                 clearTimeout(timeout);
-                clearInterval(this);
+                clearInterval(interval);
 
                 if (res.err !== undefined) {
                     reject(new Error(res.err));
@@ -69,9 +62,9 @@ function createReceiveMessageCallback(
                 if (!shouldReceive) {
                     fail(`Queue ${outQueue} received a message when it shouldn't have`);
                 } else {
-                    const out = JSON.parse(msg.content.toString());
+                    const out = JSON.parse(msg.content.toString()).payload;
 
-                    if (should(out).be.eql(expectedOutput)) {
+                    if (expect(out).to.deep.equal(expectedOutput)) {
                         succeed();
                     } else {
                         fail(`Output of queue ${outQueue} does not match expected output`);
@@ -105,7 +98,7 @@ export async function testFlow(
     const consumers: Promise<void>[] = [];
 
     const outChannels = await Promise.all(out.queues.map(async (outQueue: string): Promise<Channel> => {
-        const outChan = await initConsumer(conn, outQueue);
+        const outChan = await conn.createChannel();
 
         const res = createReceiveMessageCallback(out.expectedOutput, outQueue, out.expectedQueue === outQueue);
         outChan.consume(outQueue, res.messageCallback);
