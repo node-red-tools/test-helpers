@@ -18,7 +18,7 @@ describe('setup', () => {
         );
 
         const ctx = await setup({
-            connectUrl: "",
+            connectUrl: "amqp://localhost:5672",
             flow: {
                 userDir: baseDir,
                 settings: settingsFile,
@@ -69,6 +69,7 @@ describe('setup', () => {
         const rabbitmqID = await docker.container.findID('test-rabbitmq');
 
         await ctx.terminateFlow();
+        await ctx.connection.close();
         await Promise.all(ctx.containers.map(i => i()));
         fs.unlinkSync(settingsFile);
 
@@ -89,7 +90,7 @@ describe('setup', () => {
         );
 
         const ctx = await setup({
-            connectUrl: "",
+            connectUrl: "amqp://localhost:5672",
             flow: {
                 userDir: baseDir,
                 settings: settingsFile,

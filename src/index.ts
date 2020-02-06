@@ -47,6 +47,7 @@ export async function teardown(ctx: Context): Promise<void> {
     const errors: Error[] = [];
 
     try {
+        await ctx.connection.close();
         await ctx.terminateFlow();
     } catch (e) {
         errors.push(e);
