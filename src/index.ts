@@ -1,42 +1,61 @@
-import { Connection, connect } from 'amqplib';
-import { HelperError } from './common/error';
-import { Termination } from './common/termination';
+import { Termination, terminate } from './common/termination';
+import { Context } from './context';
 import * as dkr from './docker';
 import * as flw from './flow';
 import * as prb from './probes';
+import * as rsc from './resources';
 
 export const docker = dkr;
 export const flow = flw;
-export const probes = prb;
+export const probes = prb.builtin;
+export const resources = rsc.builtin;
+export const makeGlobal = rsc.makeGlobal;
 
 export interface Options {
     containers?: dkr.Container[];
     flow: flw.Flow;
-    connectUrl: string;
-}
-
-export interface Context {
-    containers: Termination[];
-    terminateFlow: Termination;
-    connection: Connection;
+    resources?: rsc.Factories;
 }
 
 export async function setup(opts: Options): Promise<Context> {
-    let containers: Termination[] = [];
+    const terminables: Termination[] = [];
 
     if (opts.containers && opts.containers.length) {
-        containers = await dkr.container.startAll(opts.containers);
+        const terminations = await dkr.container.startAll(opts.containers);
+
+        terminations.forEach(i => terminables.push(i));
     }
 
-    const terminateFlow = await flw.start(opts.flow);
+    try {
+        const termination = await flw.start(opts.flow);
 
-    const connection = await connect(opts.connectUrl);
+        terminables.push(termination);
+    } catch (e) {
+        await terminate(...terminables);
 
-    return {
-        containers,
-        terminateFlow,
-        connection
-    };
+        throw e;
+    }
+
+    const values: rsc.InitializedResources = {};
+
+    if (opts.resources) {
+        try {
+            const valuePairs = await rsc.init(opts.resources);
+
+            Object.keys(valuePairs).forEach(key => {
+                const [value, termination] = valuePairs[key];
+
+                values[key] = value;
+                terminables.push(termination);
+            });
+        } catch (e) {
+            await terminate(...terminables);
+
+            throw e;
+        }
+    }
+
+    return new Context(terminables.reverse(), values);
 }
 
 export async function teardown(ctx: Context): Promise<void> {
@@ -44,28 +63,7 @@ export async function teardown(ctx: Context): Promise<void> {
         return Promise.reject(new Error('Missed context.'));
     }
 
-    const errors: Error[] = [];
-
-    try {
-        await ctx.connection.close();
-        await ctx.terminateFlow();
-    } catch (e) {
-        errors.push(e);
-    } finally {
-        if (ctx.containers && ctx.containers.length) {
-            try {
-                await dkr.container.stopAll(ctx.containers);
-            } catch (e2) {
-                errors.push(e2);
-            }
-        }
-    }
-
-    if (errors.length) {
-        return Promise.reject(
-            new HelperError('Failed to tear down', ...errors),
-        );
-    }
+    return ctx.destroy();
 }
 
 export async function test(
@@ -73,5 +71,6 @@ export async function test(
     input: flw.Input,
     output: flw.Output,
 ): Promise<void> {
-    await flw.testFlow(ctx.connection, input, output);
+    ctx.resources
+    await flw.testFlow(ctx.resources.rabbitmq, input, output);
 }

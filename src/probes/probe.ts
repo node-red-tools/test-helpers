@@ -1,5 +1,5 @@
 import retry from 'p-retry';
-import { sleep } from './sleep';
+import { sleep } from '../common/sleep';
 
 export type ProbeFn = (ports: number[]) => Promise<void>;
 

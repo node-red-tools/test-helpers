@@ -1,8 +1,8 @@
 import axios from 'axios';
 import { spawn } from 'child_process';
 import { Writable } from 'stream';
-import { Probe, perform } from '../common/probe';
 import { Termination } from '../common/termination';
+import { Probe, perform } from '../probes/probe';
 
 export interface Flow {
     path?: string;

@@ -1,8 +1,8 @@
 import { exec, spawn } from 'child_process';
 import { Writable } from 'stream';
 import { HelperError } from '../common/error';
-import { Probe, perform } from '../common/probe';
 import { Termination } from '../common/termination';
+import { Probe, perform } from '../probes/probe';
 
 export interface PortBinding {
     name?: string;
@@ -102,6 +102,18 @@ export async function start(c: Container): Promise<Termination> {
 
                 return perform(c.readinessProbe, ports)
                     .then(resolve)
+                    .catch(reason => {
+                        return findID(name)
+                            .then((id: string) => {
+                                // not started
+                                if (!id) {
+                                    return Promise.reject(reason);
+                                }
+
+                                // it's started, but probe failed. need to stop
+                                return stop(id);
+                            }).then(() => reject(reason));
+                    })
                     .catch(reject);
             }
 

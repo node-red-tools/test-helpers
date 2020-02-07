@@ -1,6 +1,8 @@
-import { Connection, connect } from 'amqplib';
-import { Termination } from '../common/termination';
+import { connect } from 'amqplib';
+import { Termination, terminate } from '../common/termination';
 import { Container, start } from '../docker/container';
+import { resources } from '../index';
+import * as rsc from '../resources';
 import { testFlow } from './flow-test';
 
 describe('Flow test', () => {
@@ -29,11 +31,18 @@ describe('Flow test', () => {
             stderr: process.stderr,
         };
 
-        let termination: Termination | undefined = undefined;
-        let connection: Connection | undefined = undefined;
+        const terminables: Termination[] = [];
+
         try {
-            termination = await start(c);
-            connection = await connect("amqp://dev:dev@localhost:5672");
+            terminables.push(await start(c));
+
+            const amqpRsc = resources.amqp("amqp://localhost:5672");
+            const valuePairs = await rsc.init({
+                rabbitmq: amqpRsc,
+            });
+
+            const [connection, terminateAmqp] = valuePairs.amqp;
+            terminables.push(terminateAmqp);
 
             await testFlow(connection, {
                 exchange: "flow.ex",
@@ -70,12 +79,7 @@ describe('Flow test', () => {
         } catch (e) {
             throw e;
         } finally {
-            if (connection) {
-                await connection.close();
-            }
-            if (termination) {
-                await termination();
-            }
+            await terminate(...terminables);
         }
     });
 });
