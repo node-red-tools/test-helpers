@@ -1,11 +1,6 @@
 import { Channel, Connection, ConsumeMessage } from "amqplib";
 import { expect } from 'chai';
 
-interface MessageResult {
-    complete: boolean;
-    err?: string;
-}
-
 interface CreateMessageOut {
     consumerPromise: Promise<void>;
     messageCallback: (msg: ConsumeMessage | null) => any;
@@ -16,60 +11,48 @@ function createReceiveMessageCallback(
     outQueue: string,
     shouldReceive: boolean
 ): CreateMessageOut {
-    const res: MessageResult = {
-        complete: false
+    const res: any = {
+        resolve: undefined,
+        reject: undefined
     };
 
-    const succeed = () => {
-        res.complete = true;
-    }
-
-    const fail = (error: string) => {
-        res.err = error;
-        res.complete = true;
-    }
+    const consumerPromise = new Promise<void>((resolve, reject) => {
+        res.resolve = resolve;
+        res.reject = reject;
+    });
 
     const timeout = setTimeout(async () => {
-        clearTimeout(this);
         if (shouldReceive) {
-            fail(`Queue ${outQueue} didn't receive a message before the timeout`);
+            res.reject(new Error(`Queue ${outQueue} didn't receive a message before the timeout`));
         } else {
-            succeed();
+            res.resolve();
         }
     }, 10000);
-
-    const consumerPromise = new Promise<void>((accept, reject) => {
-        const interval = setInterval(async () => {
-            if (res.complete) {
-                clearTimeout(timeout);
-                clearInterval(interval);
-
-                if (res.err !== undefined) {
-                    reject(new Error(res.err));
-                } else {
-                    accept();
-                }
-            }
-        }, 200);
-    });
 
     return {
         consumerPromise,
         messageCallback: (msg: ConsumeMessage | null) => {
             if (msg === null) {
-                fail(`Output of queue ${outQueue} is null`);
-            } else {
-                if (!shouldReceive) {
-                    fail(`Queue ${outQueue} received a message when it shouldn't have`);
-                } else {
-                    const out = JSON.parse(msg.content.toString()).payload;
+                clearTimeout(timeout);
+                res.reject(new Error(`Output of queue ${outQueue} is null`));
 
-                    if (expect(out).to.deep.equal(expectedOutput)) {
-                        succeed();
-                    } else {
-                        fail(`Output of queue ${outQueue} does not match expected output`);
-                    }
-                }
+                return;
+            }
+            if (!shouldReceive) {
+                clearTimeout(timeout);
+                res.reject(new Error(`Queue ${outQueue} received a message when it shouldn't have`));
+
+                return;
+            }
+
+            const out = JSON.parse(msg.content.toString()).payload;
+
+            if (expect(out).to.deep.equal(expectedOutput)) {
+                clearTimeout(timeout);
+                res.resolve();
+            } else {
+                clearTimeout(timeout);
+                res.reject(new Error(`Output of queue ${outQueue} does not match expected output`));
             }
         }
     }
