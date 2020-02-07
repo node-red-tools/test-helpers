@@ -159,4 +159,30 @@ describe('Container API', () => {
         expect(axios(`http://localhost:${c[1].ports[0].host}`)).to.eventually
             .rejected;
     });
+
+    it('should stop a container when a readiness probe failed', async () => {
+        const name = `${Date.now()}${Math.random()}`;
+        try {
+            await start({
+                name,
+                image: 'nginx',
+                ports: [
+                    {
+                        container: 80,
+                        host: 8888,
+                    },
+                ],
+                readinessProbe: {
+                    initialDelaySeconds: 1,
+                    fn: () => {
+                        return Promise.reject(new Error('Test error'));
+                    }
+                }
+            });
+        } catch (e) {
+            const foundID = await findID(name);
+
+            expect(foundID).to.be.empty;
+        }
+    });
 });
