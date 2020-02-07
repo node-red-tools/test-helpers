@@ -32,13 +32,21 @@ jobs:
     if: github.event_name == 'release'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - uses: actions/setup-node@v1
         with:
           node-version: 12
           registry-url: https://registry.npmjs.org/
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
       - run: npm install
       - run: npm run build
+      - run: |
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'gh-actions@users.noreply.github.com'
+      - run: npm version ${{ steps.get_version.outputs.VERSION }}
+      - run: git push
       - run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
