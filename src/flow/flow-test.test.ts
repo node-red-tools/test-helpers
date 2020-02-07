@@ -22,15 +22,12 @@ describe('Flow test', () => {
             ],
             readinessProbe: {
                 failureThreshold: 5,
-                timeoutSeconds: 60,
                 periodSeconds: 30,
                 fn: async () => {
-                    try {
-                        await connect("amqp://localhost:5672");
-                    } catch(err) {
-                        console.log(err);
-                        throw err;
-                    }
+                    const probeConn = await connect("amqp://localhost:5672");
+                    // Must close connection or an error will be thrown when the
+                    // rabbitmq container exits
+                    await probeConn.close();
                 },
             },
             stdout: process.stdout,
@@ -47,7 +44,9 @@ describe('Flow test', () => {
                 rabbitmq: amqpRsc,
             });
             const [connection, terminateAmqp] = valuePairs.rabbitmq as Resource<Connection>;
-            terminables.push(terminateAmqp);
+            // Must put connection terminable at start of array to ensure it is terminated
+            // before rabbitmq container
+            terminables.unshift(terminateAmqp);
 
             const setupChan = await connection.createChannel();
             await setupChan.assertExchange("test.ex", "direct");
@@ -88,8 +87,6 @@ describe('Flow test', () => {
                     ],
                 }
             });
-        } catch (e) {
-            throw e;
         } finally {
             await terminate(...terminables);
         }

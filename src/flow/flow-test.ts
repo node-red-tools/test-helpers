@@ -79,7 +79,7 @@ export async function testFlow(
     const consumers: Promise<void>[] = [];
     const consumerTags: string[] = [];
 
-    const outChannels = await Promise.all(out.queues.map(async (outQueue: string): Promise<Channel> => {
+    await Promise.all(out.queues.map(async (outQueue: string): Promise<Channel> => {
         const outChan = await conn.createChannel();
 
         const res = createReceiveMessageCallback(out.expectedOutput, outQueue, out.expectedQueue === outQueue);
@@ -93,10 +93,4 @@ export async function testFlow(
     await inputChan.publish(input.exchange, input.routingKey, Buffer.from(JSON.stringify(input)));
 
     await Promise.all(consumers);
-
-    await inputChan.close();
-    await Promise.all(outChannels.map(async (outChan: Channel, idx: number) => {
-        await outChan.cancel(consumerTags[idx]);
-        await outChan.close();
-    }));
 }
