@@ -48,7 +48,7 @@ export async function perform(p: Probe, ports: number[]): Promise<void> {
 
     return retry(() => fn(ports), {
         retries: p.failureThreshold || 3,
-        maxRetryTime: p.timeoutSeconds || Infinity,
+        maxRetryTime: (p.timeoutSeconds || Infinity) * 1000,
         maxTimeout: (p.periodSeconds || 10) * 1000,
         minTimeout: 1 * 1000,
     });
