@@ -60,7 +60,6 @@ function createReceiveMessageCallback(
 
 export interface Input {
     exchange: string;
-    exchangeType: string;
     routingKey: string;
     payload: any;
 }
@@ -77,14 +76,15 @@ export async function testFlow(
     out: Output,
 ): Promise<void> {
     const inputChan = await conn.createChannel();
-    await inputChan.assertExchange(input.exchange, input.exchangeType);
     const consumers: Promise<void>[] = [];
+    const consumerTags: string[] = [];
 
     const outChannels = await Promise.all(out.queues.map(async (outQueue: string): Promise<Channel> => {
         const outChan = await conn.createChannel();
 
         const res = createReceiveMessageCallback(out.expectedOutput, outQueue, out.expectedQueue === outQueue);
-        outChan.consume(outQueue, res.messageCallback);
+        const consumerTag = (await outChan.consume(outQueue, res.messageCallback)).consumerTag;
+        consumerTags.push(consumerTag);
         consumers.push(res.consumerPromise);
 
         return outChan;
@@ -95,7 +95,8 @@ export async function testFlow(
     await Promise.all(consumers);
 
     await inputChan.close();
-    await Promise.all(outChannels.map(async (outChan: Channel) => {
+    await Promise.all(outChannels.map(async (outChan: Channel, idx: number) => {
+        await outChan.cancel(consumerTags[idx]);
         await outChan.close();
     }));
 }

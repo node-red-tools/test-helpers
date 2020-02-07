@@ -1,14 +1,14 @@
-import { connect } from 'amqplib';
+import { Connection, connect } from 'amqplib';
 import { Termination, terminate } from '../common/termination';
 import { Container, start } from '../docker/container';
 import { resources } from '../index';
-import * as rsc from '../resources';
+import { Resource, init } from '../resources';
 import { testFlow } from './flow-test';
 
 describe('Flow test', () => {
     it('should start', async () => {
         const c: Container =                 {
-            image: 'stash.nov.com:5002/caps-int/rabbitmq:25-dev',
+            image: 'rabbitmq:3.8.2-management',
             name: 'test-rabbitmq',
             ports: [
                 {
@@ -21,10 +21,16 @@ describe('Flow test', () => {
                 },
             ],
             readinessProbe: {
-                failureThreshold: 2,
-                timeoutSeconds: 20,
+                failureThreshold: 5,
+                timeoutSeconds: 60,
+                periodSeconds: 30,
                 fn: async () => {
-                    await connect("amqp://dev:dev@localhost:5672");
+                    try {
+                        await connect("amqp://localhost:5672");
+                    } catch(err) {
+                        console.log(err);
+                        throw err;
+                    }
                 },
             },
             stdout: process.stdout,
@@ -37,17 +43,23 @@ describe('Flow test', () => {
             terminables.push(await start(c));
 
             const amqpRsc = resources.amqp("amqp://localhost:5672");
-            const valuePairs = await rsc.init({
+            const valuePairs = await init({
                 rabbitmq: amqpRsc,
             });
-
-            const [connection, terminateAmqp] = valuePairs.amqp;
+            const [connection, terminateAmqp] = valuePairs.rabbitmq as Resource<Connection>;
             terminables.push(terminateAmqp);
 
+            const setupChan = await connection.createChannel();
+            await setupChan.assertExchange("test.ex", "direct");
+            await setupChan.assertQueue("test.queue.1");
+            await setupChan.assertQueue("test.queue.2");
+            await setupChan.bindQueue("test.queue.1", "test.ex", "queue.1.key");
+            await setupChan.bindQueue("test.queue.2", "test.ex", "queue.2.key");
+            await setupChan.close();
+
             await testFlow(connection, {
-                exchange: "flow.ex",
-                exchangeType: "direct",
-                routingKey: "transform.in",
+                exchange: "test.ex",
+                routingKey: "queue.1.key",
                 payload: {
                     "data": {
                         "propA": -0.05,
@@ -61,8 +73,8 @@ describe('Flow test', () => {
                     ],
                 }
             }, {
-                queues: ["transform.in", "dead.letter"],
-                expectedQueue: "transform.in",
+                queues: ["test.queue.1", "test.queue.2"],
+                expectedQueue: "test.queue.1",
                 expectedOutput: {
                     "data": {
                         "propA": -0.05,

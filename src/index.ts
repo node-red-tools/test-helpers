@@ -71,6 +71,5 @@ export async function test(
     input: flw.Input,
     output: flw.Output,
 ): Promise<void> {
-    ctx.resources
     await flw.testFlow(ctx.resources.rabbitmq, input, output);
 }
