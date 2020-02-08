@@ -1,11 +1,48 @@
 import { Channel, Connection, ConsumeMessage } from "amqplib";
-import { expect } from 'chai';
+import axios from 'axios';
+import { assert, expect } from 'chai';
+
+export enum IOType {
+    AMQP,
+    HTTP
+}
+
+export interface Input {
+    type: IOType;
+    payload: any;
+}
+
+export interface AmqpInput extends Input {
+    exchange: string;
+    routingKey: string;
+}
+
+export interface HttpInput extends Input {
+    url: string;
+}
+
+export interface Output {
+    type: IOType;
+    expectedOutput: any;
+}
+
+export interface AmqpOutput extends Output {
+    type: IOType;
+    queues: string[];
+    expectedQueue: string;
+}
 
 interface CreateMessageOut {
     consumerPromise: Promise<void>;
     messageCallback: (msg: ConsumeMessage | null) => any;
 }
 
+/**
+ * Returns a callback to be passed to channel.consume() and a promise that
+ * resolves or rejects when the callback processes a received message or the
+ * timeout is reached. Resolves when a message is received only when the message
+ * is expected to be received and the object equality assertion passes.
+ */
 function createReceiveMessageCallback(
     expectedOutput: any,
     outQueue: string,
@@ -27,70 +64,99 @@ function createReceiveMessageCallback(
         } else {
             res.resolve();
         }
-    }, 10000);
+    }, 6000);
 
     return {
         consumerPromise,
         messageCallback: (msg: ConsumeMessage | null) => {
-            if (msg === null) {
-                clearTimeout(timeout);
-                res.reject(new Error(`Output of queue ${outQueue} is null`));
+            clearTimeout(timeout);
 
-                return;
-            }
-            if (!shouldReceive) {
-                clearTimeout(timeout);
-                res.reject(new Error(`Queue ${outQueue} received a message when it shouldn't have`));
+            try {
+                if (msg === null) {
+                    throw new Error(`Output of queue ${outQueue} is null`);
+                }
 
-                return;
-            }
+                if (!shouldReceive) {
+                    throw new Error(`Queue ${outQueue} received a message when it shouldn't have`);
+                }
 
-            const out = JSON.parse(msg.content.toString()).payload;
+                const out = JSON.parse(msg.content.toString());
 
-            if (expect(out).to.deep.equal(expectedOutput)) {
-                clearTimeout(timeout);
+                expect(out).to.deep.equal(expectedOutput, `Output of queue ${outQueue} does not match expected output`);
                 res.resolve();
-            } else {
-                clearTimeout(timeout);
-                res.reject(new Error(`Output of queue ${outQueue} does not match expected output`));
+            } catch (e) {
+                res.reject(e);
             }
         }
     }
 }
 
-export interface Input {
-    exchange: string;
-    routingKey: string;
-    payload: any;
-}
-
-export interface Output {
-    queues: string[];
-    expectedQueue: string;
-    expectedOutput: any;
-}
-
+/**
+ * Test a flow by sending messages and making sure output matches what was expected.
+ * Flow input can be sent to an AMQP or HTTP server (likewise for expected flow output).
+ * If flow output is put on a queue it will make sure no other passed in queues received messages.
+ * A connection to an AMQP server must be passed in.
+ */
 export async function testFlow(
     conn: Connection,
     input: Input,
     out: Output,
 ): Promise<void> {
-    const inputChan = await conn.createChannel();
     const consumers: Promise<void>[] = [];
+    let inputChan: Channel | undefined;
+    let outChannels: Channel[] = [];
     const consumerTags: string[] = [];
 
-    await Promise.all(out.queues.map(async (outQueue: string): Promise<Channel> => {
-        const outChan = await conn.createChannel();
+    try {
+        if (out.type === IOType.AMQP) {
+            outChannels = await Promise.all(
+            (out as AmqpOutput).queues.map(async (outQueue: string): Promise<Channel> => {
+                const outChan = await conn.createChannel();
+                // Clear any messages leftover from previous tests
+                await outChan.purgeQueue(outQueue);
 
-        const res = createReceiveMessageCallback(out.expectedOutput, outQueue, out.expectedQueue === outQueue);
-        const consumerTag = (await outChan.consume(outQueue, res.messageCallback)).consumerTag;
-        consumerTags.push(consumerTag);
-        consumers.push(res.consumerPromise);
+                const res = createReceiveMessageCallback(
+                    out.expectedOutput,
+                    outQueue,
+                    (out as AmqpOutput).expectedQueue === outQueue
+                );
+                const consumerTag = (await outChan.consume(outQueue, res.messageCallback)).consumerTag;
+                consumerTags.push(consumerTag);
+                consumers.push(res.consumerPromise);
 
-        return outChan;
-    }));
+                return outChan;
+            }));
+        } else if (out.type === IOType.HTTP) {
+            // TODO
+            assert.fail("Http output tests not implemented");
+        } else {
+            assert.fail("Unknown flow test output type");
+        }
 
-    await inputChan.publish(input.exchange, input.routingKey, Buffer.from(JSON.stringify(input)));
+        if (input.type === IOType.AMQP) {
+            inputChan = await conn.createChannel();
+            await inputChan.publish(
+                (input as AmqpInput).exchange,
+                (input as AmqpInput).routingKey,
+                Buffer.from(JSON.stringify(input.payload))
+            );
+        } else if (input.type === IOType.HTTP) {
+            await axios.get((input as HttpInput).url);
+        } else {
+            assert.fail("Unknown flow test input type");
+        }
 
-    await Promise.all(consumers);
+        await Promise.all(consumers);
+    } finally {
+        if (inputChan) {
+            await inputChan.close();
+        }
+
+        if (outChannels) {
+            await Promise.all(outChannels.map(async (outChan: Channel, idx: number) => {
+                await outChan.cancel(consumerTags[idx]);
+                await outChan.close();
+            }));
+        }
+    }
 }
