@@ -58,7 +58,9 @@ function createReceiveMessageCallback(
         res.reject = reject;
     });
 
-    const timeout = setTimeout(async () => {
+    let timeoutReached = false;
+    const timeout = setTimeout(() => {
+        timeoutReached = true;
         if (shouldReceive) {
             res.reject(new Error(`Queue ${outQueue} didn't receive a message before the timeout`));
         } else {
@@ -83,6 +85,9 @@ function createReceiveMessageCallback(
                 const out = JSON.parse(msg.content.toString());
 
                 expect(out).to.deep.equal(expectedOutput, `Output of queue ${outQueue} does not match expected output`);
+                if (timeoutReached) {
+                    throw new Error(`Queue ${outQueue} received a message after the timeout was reached`);
+                }
                 res.resolve();
             } catch (e) {
                 res.reject(e);
