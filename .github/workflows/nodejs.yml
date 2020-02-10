@@ -48,7 +48,7 @@ jobs:
       - run: |
           npm config set git-tag-version=false
           npm version ${{ steps.get_version.outputs.VERSION }}
-      - run: git push origin master
+      - uses: mikeal/publish-to-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: npm publish --access public
