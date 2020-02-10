@@ -1,4 +1,4 @@
-import { Channel, Connection, ConsumeMessage } from "amqplib";
+import { Channel, Connection, ConsumeMessage, Options, MessageProperties } from "amqplib";
 import axios from 'axios';
 import { assert, expect } from 'chai';
 
@@ -15,6 +15,7 @@ export interface Input {
 export interface AmqpInput extends Input {
     exchange: string;
     routingKey: string;
+    options?: Options.Publish;
 }
 
 export interface HttpInput extends Input {
@@ -30,6 +31,7 @@ export interface AmqpOutput extends Output {
     type: IOType;
     queues: string[];
     expectedQueue: string;
+    expectedProperties: MessageProperties;
 }
 
 interface CreateMessageOut {
@@ -46,7 +48,8 @@ interface CreateMessageOut {
 function createReceiveMessageCallback(
     expectedOutput: any,
     outQueue: string,
-    shouldReceive: boolean
+    shouldReceive: boolean,
+    expectedProperties?: MessageProperties,
 ): CreateMessageOut {
     const res: any = {
         resolve: undefined,
@@ -66,7 +69,7 @@ function createReceiveMessageCallback(
         } else {
             res.resolve();
         }
-    }, 6000);
+    }, 4000);
 
     return {
         consumerPromise,
@@ -85,6 +88,15 @@ function createReceiveMessageCallback(
                 const out = JSON.parse(msg.content.toString());
 
                 expect(out).to.deep.equal(expectedOutput, `Output of queue ${outQueue} does not match expected output`);
+                if (expectedProperties) {
+                    Object.keys(expectedProperties).forEach(key => {
+                        expect((msg.properties as any)[key]).to.deep.equal(
+                            (expectedProperties as any)[key],
+                            `Output property ${key} of queue ${outQueue} does not match expected property`
+                        );
+                    })
+                }
+
                 if (timeoutReached) {
                     throw new Error(`Queue ${outQueue} received a message after the timeout was reached`);
                 }
@@ -123,7 +135,8 @@ export async function testFlow(
                 const res = createReceiveMessageCallback(
                     out.expectedOutput,
                     outQueue,
-                    (out as AmqpOutput).expectedQueue === outQueue
+                    (out as AmqpOutput).expectedQueue === outQueue,
+                    (out as AmqpOutput).expectedProperties
                 );
                 const consumerTag = (await outChan.consume(outQueue, res.messageCallback)).consumerTag;
                 consumerTags.push(consumerTag);
@@ -143,7 +156,8 @@ export async function testFlow(
             await inputChan.publish(
                 (input as AmqpInput).exchange,
                 (input as AmqpInput).routingKey,
-                Buffer.from(JSON.stringify(input.payload))
+                Buffer.from(JSON.stringify(input.payload)),
+                (input as AmqpInput).options,
             );
         } else if (input.type === IOType.HTTP) {
             await axios.get((input as HttpInput).url);

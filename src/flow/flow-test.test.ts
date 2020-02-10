@@ -81,7 +81,7 @@ describe('Flow test', () => {
         await terminate(...terminables);
     });
 
-    it('should start', async () => {
+    it('should test using amqp successfully', async () => {
         await testFlow(conn, {
             type: IOType.AMQP,
             exchange: "test.ex",
@@ -93,6 +93,58 @@ describe('Flow test', () => {
             queues: ["test.queue.1", "test.queue.2"],
             expectedQueue: "test.queue.1",
         } as AmqpOutput);
+    });
+
+    it('should test using amqp successfully when options are given', async () => {
+        await testFlow(conn, {
+            type: IOType.AMQP,
+            exchange: "test.ex",
+            routingKey: "queue.2.key",
+            payload: inputPayload,
+            options: {
+                replyTo: "test",
+                expiration: 5000
+            }
+        } as AmqpInput, {
+            expectedOutput,
+            type: IOType.AMQP,
+            queues: ["test.queue.1", "test.queue.2"],
+            expectedQueue: "test.queue.2",
+            expectedProperties: {
+                replyTo: "test",
+                expiration: "5000"
+            }
+        } as AmqpOutput);
+    });
+
+    it('should fail when expected options do not match those given', async () => {
+        try {
+            await testFlow(conn, {
+                type: IOType.AMQP,
+                exchange: "test.ex",
+                routingKey: "queue.2.key",
+                payload: inputPayload,
+                expectedProperties: {
+                    replyTo: "test",
+                    expiration: 5000
+                }
+            } as AmqpInput, {
+                expectedOutput,
+                type: IOType.AMQP,
+                queues: ["test.queue.1", "test.queue.2"],
+                expectedQueue: "test.queue.2",
+                expectedProperties: {
+                    replyTo: "not test",
+                    expiration: "5000"
+                }
+            } as AmqpOutput);
+        } catch (e) {
+            expect(e).to.exist;
+
+            return;
+        }
+
+        assert.fail("Did not throw error");
     });
 
     it('should fail when message is not routed', async () => {
