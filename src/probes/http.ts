@@ -1,7 +1,7 @@
 import axios, { Method } from 'axios';
 import { ProbeFn } from './probe';
 
-export interface HttpOptions {
+export interface HttpProbeOptions {
     path: string;
     method?:
         | 'GET'
@@ -16,7 +16,7 @@ export interface HttpOptions {
     protocol?: 'http:' | 'https:';
 }
 
-async function httpReq(opts: HttpOptions, port: number): Promise<void> {
+async function httpReq(opts: HttpProbeOptions, port: number): Promise<void> {
     const protocol = opts.protocol || 'http:';
     const method = (opts.method || 'GET') as Method;
     await axios({
@@ -25,7 +25,7 @@ async function httpReq(opts: HttpOptions, port: number): Promise<void> {
     });
 }
 
-export function request(opts: HttpOptions): ProbeFn {
+export function request(opts: HttpProbeOptions): ProbeFn {
     return async (ports: number[]) => {
         await Promise.all(ports.map(httpReq.bind(null, opts)));
     };
