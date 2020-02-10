@@ -18,7 +18,7 @@ export interface Flow {
 export async function start(f: Flow = {}): Promise<Termination> {
     return new Promise<Termination>((resolve, reject) => {
         const {
-            path = 'flows.json',
+            path = 'flow.json',
             port = 1880,
             userDir = '.',
             env = {},

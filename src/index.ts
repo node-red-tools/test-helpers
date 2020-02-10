@@ -10,6 +10,7 @@ export const flow = flw;
 export const probes = prb.builtin;
 export const resources = rsc.builtin;
 export const makeGlobal = rsc.makeGlobal;
+export const testFlow = flw.testFlow;
 
 export interface Options {
     containers?: dkr.Container[];
@@ -64,12 +65,4 @@ export async function teardown(ctx: Context): Promise<void> {
     }
 
     return ctx.destroy();
-}
-
-export async function test(
-    ctx: Context,
-    input: flw.Input,
-    output: flw.Output,
-): Promise<void> {
-    await flw.testFlow(ctx.resources.rabbitmq, input, output);
 }
