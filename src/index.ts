@@ -65,3 +65,11 @@ export async function teardown(ctx: Context): Promise<void> {
 
     return ctx.destroy();
 }
+
+export async function test(
+    ctx: Context,
+    input: flw.Input,
+    output: flw.Output,
+): Promise<void> {
+    await flw.testFlow(ctx.resources.rabbitmq, input, output);
+}

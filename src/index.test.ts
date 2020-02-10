@@ -77,6 +77,7 @@ describe('setup', () => {
         });
 
         expect(ctx).to.exist;
+
         expect(ctx.destroy).to.be.a('function');
 
         let err: Error | undefined;
@@ -89,6 +90,7 @@ describe('setup', () => {
 
         const redisID = await docker.container.findID('test-redis');
         const rabbitmqID = await docker.container.findID('test-rabbitmq');
+
 
         await ctx.destroy();
         fs.unlinkSync(settingsFile);
